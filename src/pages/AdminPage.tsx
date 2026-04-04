@@ -1,0 +1,192 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash2, ShieldCheck, Users, Code2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  getAllUsers,
+  getAllPrompts,
+  deleteUser as storeDeleteUser,
+  updateUserRole,
+  deletePrompt as storeDeletePrompt,
+  type StoredUser,
+  type StoredPrompt,
+} from "@/lib/store";
+
+export default function AdminPage() {
+  const [users, setUsers] = useState<StoredUser[]>([]);
+  const [prompts, setPrompts] = useState<StoredPrompt[]>([]);
+
+  useEffect(() => {
+    setUsers(getAllUsers());
+    setPrompts(getAllPrompts());
+  }, []);
+
+  const handleDeleteUser = (id: string) => {
+    storeDeleteUser(id);
+    setUsers(getAllUsers());
+    toast.success("User deleted");
+  };
+
+  const handlePromoteUser = (id: string) => {
+    updateUserRole(id, "admin");
+    setUsers(getAllUsers());
+    toast.success("User promoted to admin");
+  };
+
+  const handleDeletePrompt = (id: string) => {
+    storeDeletePrompt(id);
+    setPrompts(getAllPrompts());
+    toast.success("Prompt deleted");
+  };
+
+  const formatDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+    } catch {
+      return iso;
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 animate-slide-up">
+        <h1 className="flex items-center gap-2 text-3xl font-bold">
+          <ShieldCheck className="h-8 w-8 text-primary" /> Admin Dashboard
+        </h1>
+        <p className="mt-1 text-muted-foreground">Manage users and monitor all generated prompts.</p>
+      </div>
+
+      {/* Stats */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-border/50 bg-card p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Registered Users</span>
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div className="mt-2 text-3xl font-bold">{users.length}</div>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-card p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total Prompts</span>
+            <Code2 className="h-5 w-5 text-success" />
+          </div>
+          <div className="mt-2 text-3xl font-bold">{prompts.length}</div>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-card p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Pro Users</span>
+            <ShieldCheck className="h-5 w-5 text-warning" />
+          </div>
+          <div className="mt-2 text-3xl font-bold">{users.filter((u) => u.plan === "pro").length}</div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="users">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="prompts">All Prompts</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="mt-4">
+          <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+            {users.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Users className="mb-4 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-muted-foreground">No registered users yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-muted/50">
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Plan</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Joined</th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-muted/30">
+                        <td className="px-4 py-3 font-medium">{u.name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${u.role === "admin" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${u.plan === "pro" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                            {u.plan}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(u.createdAt)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {u.role !== "admin" && (
+                              <Button variant="ghost" size="sm" onClick={() => handlePromoteUser(u.id)}>Promote</Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteUser(u.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="prompts" className="mt-4">
+          <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+            {prompts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Code2 className="mb-4 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-muted-foreground">No prompts generated yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-muted/50">
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">User</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prompt</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Language</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {prompts.map((p) => (
+                      <tr key={p.id} className="hover:bg-muted/30">
+                        <td className="px-4 py-3 text-muted-foreground">{p.userEmail}</td>
+                        <td className="px-4 py-3 font-medium max-w-xs truncate">{p.prompt}</td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{p.language}</span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(p.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePrompt(p.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

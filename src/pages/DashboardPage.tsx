@@ -1,0 +1,126 @@
+import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Code2, Zap, History, ArrowRight, TrendingUp } from "lucide-react";
+import { getPromptsByUser, getTodayPromptCount } from "@/lib/store";
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+
+  const userPrompts = user ? getPromptsByUser(user.id) : [];
+  const todayCount = user ? getTodayPromptCount(user.id) : 0;
+
+  const stats = [
+    { label: "Prompts Today", value: String(todayCount), max: user?.plan === "free" ? "/5" : "∞", icon: Code2, color: "text-primary" },
+    { label: "Total Generated", value: String(userPrompts.length), icon: TrendingUp, color: "text-success" },
+    { label: "Plan", value: user?.plan === "pro" ? "Pro" : "Free", icon: Zap, color: "text-warning" },
+  ];
+
+  const recentPrompts = userPrompts.slice(0, 5);
+
+  const formatDate = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 animate-slide-up">
+        <h1 className="text-3xl font-bold">Welcome back, {user?.name} 👋</h1>
+        <p className="mt-1 text-muted-foreground">Here's an overview of your coding activity.</p>
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <div key={stat.label} className="rounded-xl border border-border/50 bg-card p-6 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{stat.label}</span>
+              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+            </div>
+            <div className="mt-2 text-3xl font-bold">
+              {stat.value}<span className="text-lg text-muted-foreground">{stat.max}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <Link to="/generate" className="group rounded-xl border border-primary/20 bg-primary/5 p-6 transition-all hover:bg-primary/10 hover:shadow-glow">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
+              <Code2 className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Generate Code</h3>
+              <p className="text-sm text-muted-foreground">Create new code with AI</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-primary opacity-0 transition-all group-hover:opacity-100" />
+          </div>
+        </Link>
+        <Link to="/history" className="group rounded-xl border border-border/50 bg-card p-6 transition-all hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+              <History className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold">View History</h3>
+              <p className="text-sm text-muted-foreground">Browse past generations</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100" />
+          </div>
+        </Link>
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-card">
+        <div className="border-b border-border/50 p-4">
+          <h2 className="font-semibold">Recent Prompts</h2>
+        </div>
+        {recentPrompts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Code2 className="mb-3 h-10 w-10 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">No prompts yet. Start generating!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {recentPrompts.map((p) => (
+              <div key={p.id} className="flex items-center justify-between p-4">
+                <div>
+                  <p className="text-sm font-medium">{p.prompt}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(p.createdAt)}</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{p.language}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Admin-only features */}
+      {user?.role === "admin" && (
+        <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-6">
+          <h2 className="font-semibold mb-2">Admin Features</h2>
+          <ul className="list-disc pl-5">
+            <li>View all users</li>
+            <li>Manage prompts</li>
+            <li>Access admin analytics</li>
+            {/* Add more admin features here */}
+          </ul>
+        </div>
+      )}
+
+      {user?.plan === "free" && (
+        <div className="mt-8 rounded-xl border border-warning/30 bg-warning/5 p-6 text-center">
+          <p className="font-medium">You've used {todayCount} of 5 free prompts today</p>
+          <p className="mt-1 text-sm text-muted-foreground">Upgrade to Pro for unlimited generations</p>
+          <Link to="/pricing"><Button variant="hero" size="sm" className="mt-4">Upgrade to Pro</Button></Link>
+        </div>
+      )}
+    </div>
+  );
+}
