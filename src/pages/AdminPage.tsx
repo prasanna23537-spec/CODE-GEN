@@ -10,6 +10,7 @@ import {
   deleteUser as storeDeleteUser,
   updateUserRole,
   deletePrompt as storeDeletePrompt,
+  initializeDummyData,
   type StoredUser,
   type StoredPrompt,
 } from "@/lib/store";
@@ -20,6 +21,9 @@ export default function AdminPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
 
   useEffect(() => {
+    // Initialize dummy data if store is empty
+    initializeDummyData();
+    
     const allUsers = getAllUsers();
     const allPrompts = getAllPrompts();
     setUsers(allUsers);
