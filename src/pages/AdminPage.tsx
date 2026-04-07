@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, ShieldCheck, Users, Code2 } from "lucide-react";
 import { toast } from "sonner";
+import { initAllAnalytics, sampleAnalyticsData } from "@/lib/analytics-charts";
 import {
   getAllUsers,
   getAllPrompts,
@@ -20,6 +21,14 @@ export default function AdminPage() {
   useEffect(() => {
     setUsers(getAllUsers());
     setPrompts(getAllPrompts());
+  }, []);
+
+  useEffect(() => {
+    try {
+      initAllAnalytics({ donut: "adminRatingDonutCanvas", bar: "adminFeedbackBarCanvas", line: "adminUserActivityLineCanvas" }, sampleAnalyticsData);
+    } catch (e) {
+      console.warn("Analytics init skipped:", e);
+    }
   }, []);
 
   const handleDeleteUser = (id: string) => {
@@ -81,6 +90,39 @@ export default function AdminPage() {
             <ShieldCheck className="h-5 w-5 text-warning" />
           </div>
           <div className="mt-2 text-3xl font-bold">{users.filter((u) => u.plan === "pro").length}</div>
+        </div>
+      </div>
+
+      {/* Dashboard Analytics */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="border-b border-border/50 p-3">
+            <h3 className="font-semibold">Rating Distribution</h3>
+            <p className="text-sm text-muted-foreground">Donut chart of user ratings</p>
+          </div>
+          <div className="p-4 h-56">
+            <canvas id="adminRatingDonutCanvas" aria-label="Rating distribution chart"></canvas>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="border-b border-border/50 p-3">
+            <h3 className="font-semibold">Feedback Tags</h3>
+            <p className="text-sm text-muted-foreground">Bar chart showing top feedback topics</p>
+          </div>
+          <div className="p-4 h-56">
+            <canvas id="adminFeedbackBarCanvas" aria-label="Feedback tags chart"></canvas>
+          </div>
+        </div>
+
+        <div className="sm:col-span-2 rounded-xl border border-border/50 bg-card p-4">
+          <div className="border-b border-border/50 p-3">
+            <h3 className="font-semibold">User Activity over time</h3>
+            <p className="text-sm text-muted-foreground">Line chart of active users</p>
+          </div>
+          <div className="p-4 h-64">
+            <canvas id="adminUserActivityLineCanvas" aria-label="User activity chart"></canvas>
+          </div>
         </div>
       </div>
 

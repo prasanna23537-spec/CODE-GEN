@@ -1,8 +1,10 @@
 import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, History, ArrowRight, TrendingUp } from "lucide-react";
 import { getPromptsByUser, getTodayPromptCount } from "@/lib/store";
+import { initAllAnalytics, sampleAnalyticsData } from "@/lib/analytics-charts";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -28,6 +30,18 @@ export default function DashboardPage() {
     const days = Math.floor(hrs / 24);
     return `${days}d ago`;
   };
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
+    // Initialize analytics charts with sample data; safe no-op if canvases missing
+    try {
+      initAllAnalytics({ donut: "ratingDonutCanvas", bar: "feedbackBarCanvas", line: "userActivityLineCanvas" }, sampleAnalyticsData);
+    } catch (e) {
+      // fail silently to avoid breaking dashboard if Chart.js not loaded yet
+      // eslint-disable-next-line no-console
+      console.warn("Analytics init skipped:", e);
+    }
+  }, [user?.role]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -103,14 +117,48 @@ export default function DashboardPage() {
 
       {/* Admin-only features */}
       {user?.role === "admin" && (
-        <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-6">
-          <h2 className="font-semibold mb-2">Admin Features</h2>
-          <ul className="list-disc pl-5">
-            <li>View all users</li>
-            <li>Manage prompts</li>
-            <li>Access admin analytics</li>
-            {/* Add more admin features here */}
-          </ul>
+        <div>
+          <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-6">
+            <h2 className="font-semibold mb-2">Admin Features</h2>
+            <ul className="list-disc pl-5">
+              <li>View all users</li>
+              <li>Manage prompts</li>
+              <li>Access admin analytics</li>
+            </ul>
+          </div>
+
+          {/* Dashboard Analytics - non-invasive add-on */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="border-b border-border/50 p-3">
+                <h3 className="font-semibold">Rating Distribution</h3>
+                <p className="text-sm text-muted-foreground">Donut chart of user ratings</p>
+              </div>
+              <div className="p-4 h-56">
+                <canvas id="ratingDonutCanvas" aria-label="Rating distribution chart"></canvas>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="border-b border-border/50 p-3">
+                <h3 className="font-semibold">Feedback Tags</h3>
+                <p className="text-sm text-muted-foreground">Bar chart showing top feedback topics</p>
+              </div>
+              <div className="p-4 h-56">
+                <canvas id="feedbackBarCanvas" aria-label="Feedback tags chart"></canvas>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 rounded-xl border border-border/50 bg-card p-4">
+              <div className="border-b border-border/50 p-3">
+                <h3 className="font-semibold">User Activity over time</h3>
+                <p className="text-sm text-muted-foreground">Line chart of active users</p>
+              </div>
+              <div className="p-4 h-64">
+                <canvas id="userActivityLineCanvas" aria-label="User activity chart" />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

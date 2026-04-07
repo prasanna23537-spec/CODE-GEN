@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Analytics canvas sizing: ensure canvases fill their card containers responsively */
+#ratingDonutCanvas,
+#feedbackBarCanvas,
+#userActivityLineCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
