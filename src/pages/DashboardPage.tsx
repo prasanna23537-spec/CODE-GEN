@@ -13,9 +13,8 @@ export default function DashboardPage() {
   const todayCount = user ? getTodayPromptCount(user.id) : 0;
 
   const stats = [
-    { label: "Prompts Today", value: String(todayCount), max: user?.plan === "free" ? "/5" : "∞", icon: Code2, color: "text-primary" },
+    { label: "Prompts Today", value: String(todayCount), max: "/5", icon: Code2, color: "text-primary" },
     { label: "Total Generated", value: String(userPrompts.length), icon: TrendingUp, color: "text-success" },
-    { label: "Plan", value: user?.plan === "pro" ? "Pro" : "Free", icon: Zap, color: "text-warning" },
   ];
 
   const recentPrompts = userPrompts.slice(0, 5);
@@ -50,7 +49,7 @@ export default function DashboardPage() {
         <p className="mt-1 text-muted-foreground">Here's an overview of your coding activity.</p>
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border/50 bg-card p-6 transition-all hover:shadow-md">
             <div className="flex items-center justify-between">
@@ -162,11 +161,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {user?.plan === "free" && (
-        <div className="mt-8 rounded-xl border border-warning/30 bg-warning/5 p-6 text-center">
+      {/* Free Plan Daily Limit Reminder */}
+      {todayCount >= 4 && (
+        <div className="mt-8 rounded-xl border border-info/30 bg-info/5 p-6 text-center">
           <p className="font-medium">You've used {todayCount} of 5 free prompts today</p>
-          <p className="mt-1 text-sm text-muted-foreground">Upgrade to Pro for unlimited generations</p>
-          <Link to="/pricing"><Button variant="hero" size="sm" className="mt-4">Upgrade to Pro</Button></Link>
+          <p className="mt-1 text-sm text-muted-foreground">Please come back tomorrow for more free generations</p>
         </div>
       )}
     </div>

@@ -18,7 +18,6 @@ export default function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold">Product</h4>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
               <Link to="/generate" className="hover:text-foreground transition-colors">Code Generator</Link>
             </div>
           </div>

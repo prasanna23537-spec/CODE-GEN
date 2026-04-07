@@ -32,13 +32,11 @@ export default function GeneratePage() {
     if (!prompt.trim()) { toast.error("Please enter a prompt"); return; }
     if (!user) return;
 
-    // Check free plan limit
-    if (user.plan === "free") {
-      const todayCount = getTodayPromptCount(user.id);
-      if (todayCount >= 5) {
-        toast.error("Daily limit reached! Upgrade to Pro for unlimited prompts.");
-        return;
-      }
+    // Check free plan daily limit (5 prompts per day)
+    const todayCount = getTodayPromptCount(user.id);
+    if (todayCount >= 5) {
+      toast.error("Daily limit of 5 prompts reached. Please return tomorrow.");
+      return;
     }
 
     setLoading(true);

@@ -69,7 +69,7 @@ export default function AdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border/50 bg-card p-6">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Registered Users</span>
@@ -83,13 +83,6 @@ export default function AdminPage() {
             <Code2 className="h-5 w-5 text-success" />
           </div>
           <div className="mt-2 text-3xl font-bold">{prompts.length}</div>
-        </div>
-        <div className="rounded-xl border border-border/50 bg-card p-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Pro Users</span>
-            <ShieldCheck className="h-5 w-5 text-warning" />
-          </div>
-          <div className="mt-2 text-3xl font-bold">{users.filter((u) => u.plan === "pro").length}</div>
         </div>
       </div>
 
@@ -147,7 +140,6 @@ export default function AdminPage() {
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Plan</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Joined</th>
                       <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                     </tr>
@@ -160,11 +152,6 @@ export default function AdminPage() {
                         <td className="px-4 py-3">
                           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${u.role === "admin" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                             {u.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${u.plan === "pro" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                            {u.plan}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{formatDate(u.createdAt)}</td>

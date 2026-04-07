@@ -44,7 +44,6 @@ export default function Navbar() {
           {!isAuthenticated ? (
             <>
               <Link to="/#features" className={navLinkClass("/#features")}>Features</Link>
-              <Link to="/pricing" className={navLinkClass("/pricing")}>Pricing</Link>
             </>
           ) : (
             <>
