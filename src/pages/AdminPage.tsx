@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, ShieldCheck, Users, Code2 } from "lucide-react";
+import { Trash2, ShieldCheck, Users, Code2, Star, Zap, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { initAllAnalytics, sampleAnalyticsData } from "@/lib/analytics-charts";
+import { initActivityLine, initLanguageBar, initRatingDonut, initFeedbackBar, initUserActivityLine, generateAdminDashboardData } from "@/lib/analytics-charts";
 import {
   getAllUsers,
   getAllPrompts,
@@ -17,36 +17,67 @@ import {
 export default function AdminPage() {
   const [users, setUsers] = useState<StoredUser[]>([]);
   const [prompts, setPrompts] = useState<StoredPrompt[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
   useEffect(() => {
-    setUsers(getAllUsers());
-    setPrompts(getAllPrompts());
+    const allUsers = getAllUsers();
+    const allPrompts = getAllPrompts();
+    setUsers(allUsers);
+    setPrompts(allPrompts);
+    setDashboardData(generateAdminDashboardData(allUsers, allPrompts));
   }, []);
 
   useEffect(() => {
-    try {
-      initAllAnalytics({ donut: "adminRatingDonutCanvas", bar: "adminFeedbackBarCanvas", line: "adminUserActivityLineCanvas" }, sampleAnalyticsData);
-    } catch (e) {
-      console.warn("Analytics init skipped:", e);
+    if (dashboardData) {
+      try {
+        initActivityLine("adminActivityLineCanvas", dashboardData.activity);
+        initLanguageBar("adminLanguageBarCanvas", dashboardData.languageUsage);
+        initRatingDonut("adminRatingDonutCanvas", dashboardData.ratingDistribution);
+        initFeedbackBar("adminFeedbackBarCanvas", dashboardData.feedbackTags);
+        initUserActivityLine("adminUserActivityLineCanvas", dashboardData.userActivity);
+      } catch (e) {
+        console.warn("Analytics init skipped:", e);
+      }
     }
-  }, []);
+  }, [dashboardData]);
 
   const handleDeleteUser = (id: string) => {
     storeDeleteUser(id);
-    setUsers(getAllUsers());
+    const updatedUsers = getAllUsers();
+    setUsers(updatedUsers);
+    setDashboardData(generateAdminDashboardData(updatedUsers, prompts));
     toast.success("User deleted");
   };
 
   const handlePromoteUser = (id: string) => {
     updateUserRole(id, "admin");
-    setUsers(getAllUsers());
+    const updatedUsers = getAllUsers();
+    setUsers(updatedUsers);
+    setDashboardData(generateAdminDashboardData(updatedUsers, prompts));
     toast.success("User promoted to admin");
   };
 
   const handleDeletePrompt = (id: string) => {
     storeDeletePrompt(id);
-    setPrompts(getAllPrompts());
+    const updatedPrompts = getAllPrompts();
+    setPrompts(updatedPrompts);
+    setDashboardData(generateAdminDashboardData(users, updatedPrompts));
     toast.success("Prompt deleted");
+  };
+
+  const getAverageRating = () => {
+    if (!dashboardData) return 4.5;
+    const ratings = dashboardData.ratingDistribution.labels.map((l: string) => parseInt(l));
+    const ratingValues = dashboardData.ratingDistribution.values;
+    const totalRating = ratings.reduce((sum: number, r: number, i: number) => sum + r * ratingValues[i], 0);
+    const totalCount = ratingValues.reduce((sum: number, v: number) => sum + v, 0);
+    return totalCount === 0 ? 0 : (totalRating / totalCount).toFixed(1);
+  };
+
+  const getTopLanguage = () => {
+    if (!dashboardData || dashboardData.languageUsage.labels.length === 0) return "N/A";
+    const idx = dashboardData.languageUsage.values.indexOf(Math.max(...dashboardData.languageUsage.values));
+    return dashboardData.languageUsage.labels[idx] || "N/A";
   };
 
   const formatDate = (iso: string) => {
@@ -68,25 +99,77 @@ export default function AdminPage() {
         <p className="mt-1 text-muted-foreground">Manage users and monitor all generated prompts.</p>
       </div>
 
-      {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border/50 bg-card p-6">
+      {/* Enhanced Stats Cards - 4 columns */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-border/50 bg-card p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Registered Users</span>
-            <Users className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm text-muted-foreground">Total Users</p>
+              <p className="text-3xl font-bold mt-2">{users.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
+            </div>
+            <Users className="h-8 w-8 text-blue-500 opacity-80" />
           </div>
-          <div className="mt-2 text-3xl font-bold">{users.length}</div>
         </div>
-        <div className="rounded-xl border border-border/50 bg-card p-6">
+
+        <div className="rounded-xl border border-border/50 bg-card p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total Prompts</span>
-            <Code2 className="h-5 w-5 text-success" />
+            <div>
+              <p className="text-sm text-muted-foreground">Snippets Saved</p>
+              <p className="text-3xl font-bold mt-2">{prompts.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total prompts</p>
+            </div>
+            <Code2 className="h-8 w-8 text-green-500 opacity-80" />
           </div>
-          <div className="mt-2 text-3xl font-bold">{prompts.length}</div>
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-card p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Rating</p>
+              <p className="text-3xl font-bold mt-2">{getAverageRating()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Out of 5</p>
+            </div>
+            <Star className="h-8 w-8 text-amber-500 opacity-80" />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-card p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Top Language</p>
+              <p className="text-3xl font-bold mt-2">{getTopLanguage()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Most popular</p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-purple-500 opacity-80" />
+          </div>
         </div>
       </div>
 
-      {/* Dashboard Analytics */}
+      {/* Activity & Language Usage Charts */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="border-b border-border/50 p-3">
+            <h3 className="font-semibold">Activity (last 14 days)</h3>
+            <p className="text-sm text-muted-foreground">Daily user activity</p>
+          </div>
+          <div className="p-4 h-64">
+            <canvas id="adminActivityLineCanvas" aria-label="Activity chart"></canvas>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="border-b border-border/50 p-3">
+            <h3 className="font-semibold">Language Usage</h3>
+            <p className="text-sm text-muted-foreground">Most used technologies</p>
+          </div>
+          <div className="p-4 h-64">
+            <canvas id="adminLanguageBarCanvas" aria-label="Language usage chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      {/* Rating & Feedback Charts */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border/50 bg-card p-4">
           <div className="border-b border-border/50 p-3">
