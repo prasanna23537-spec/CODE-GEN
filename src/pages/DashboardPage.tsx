@@ -1,10 +1,11 @@
 import { useAuth } from "@/context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, History, ArrowRight, TrendingUp } from "lucide-react";
 import { getPromptsByUser, getTodayPromptCount } from "@/lib/store";
 import { initAllAnalytics, sampleAnalyticsData } from "@/lib/analytics-charts";
+import FeedbackForm from "@/components/FeedbackForm";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -32,13 +33,55 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user?.role !== "admin") return;
-    // Initialize analytics charts with sample data; safe no-op if canvases missing
+    // Fetch real analytics from backend and initialize charts
+    const fetchAndInit = async () => {
+      try {
+        const res = await fetch('/api/feedback-stats');
+        if (!res.ok) {
+          initAllAnalytics({ donut: 'ratingDonutCanvas', bar: 'feedbackBarCanvas', line: 'userActivityLineCanvas' }, sampleAnalyticsData);
+          return;
+        }
+        const json = await res.json();
+        if (!json.success) {
+          initAllAnalytics({ donut: 'ratingDonutCanvas', bar: 'feedbackBarCanvas', line: 'userActivityLineCanvas' }, sampleAnalyticsData);
+          return;
+        }
+        // build rating distribution labels/values in order 5..1
+        const ratings = json.ratings || json.ratings || {};
+        const ratingValues = [5,4,3,2,1].map(n => Number(ratings[String(n)] || 0));
+        const ratingData = { labels: ['5★','4★','3★','2★','1★'], values: ratingValues };
+
+        const tagsObj = json.tags || {};
+        const tagLabels = Object.keys(tagsObj);
+        const tagValues = tagLabels.map(k => Number(tagsObj[k] || 0));
+        const tagData = { labels: tagLabels, values: tagValues };
+
+        initAllAnalytics({ donut: 'ratingDonutCanvas', bar: 'feedbackBarCanvas', line: 'userActivityLineCanvas' }, { ratingDistribution: ratingData, feedbackTags: tagData, userActivity: sampleAnalyticsData.userActivity });
+      } catch (e) {
+        // fallback to sample data
+        initAllAnalytics({ donut: 'ratingDonutCanvas', bar: 'feedbackBarCanvas', line: 'userActivityLineCanvas' }, sampleAnalyticsData);
+      }
+    };
+    fetchAndInit();
+  }, [user?.role]);
+
+  const refreshAnalytics = useCallback(async () => {
+    if (user?.role !== 'admin') return;
     try {
-      initAllAnalytics({ donut: "ratingDonutCanvas", bar: "feedbackBarCanvas", line: "userActivityLineCanvas" }, sampleAnalyticsData);
+      const res = await fetch('/api/feedback-stats');
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success) return;
+      const ratings = json.ratings || {};
+      const ratingValues = [5,4,3,2,1].map(n => Number(ratings[String(n)] || 0));
+      const ratingData = { labels: ['5★','4★','3★','2★','1★'], values: ratingValues };
+      const tagsObj = json.tags || {};
+      const tagLabels = Object.keys(tagsObj);
+      const tagValues = tagLabels.map(k => Number(tagsObj[k] || 0));
+      const tagData = { labels: tagLabels, values: tagValues };
+      initAllAnalytics({ donut: 'ratingDonutCanvas', bar: 'feedbackBarCanvas', line: 'userActivityLineCanvas' }, { ratingDistribution: ratingData, feedbackTags: tagData, userActivity: sampleAnalyticsData.userActivity });
     } catch (e) {
-      // fail silently to avoid breaking dashboard if Chart.js not loaded yet
-      // eslint-disable-next-line no-console
-      console.warn("Analytics init skipped:", e);
+      // ignore
     }
   }, [user?.role]);
 
@@ -113,6 +156,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Feedback form (for all users) */}
+      <FeedbackForm onSuccess={refreshAnalytics} />
 
       {/* Admin-only features */}
       {user?.role === "admin" && (

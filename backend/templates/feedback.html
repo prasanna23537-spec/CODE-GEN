@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feedback.css') }}">
+
+<section class="feedback-panel">
+  <h2>Feedback</h2>
+
+  <form id="feedback-form" class="feedback-form" novalidate>
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" value="{{ prefill.get('name','') }}" required>
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" value="{{ prefill.get('email','') }}" required>
+    </div>
+
+    <div class="field">
+      <label for="rating">Rating</label>
+      <select id="rating" name="rating" required>
+        <option value="">Select rating</option>
+        <option value="5">5 — Excellent</option>
+        <option value="4">4 — Very good</option>
+        <option value="3">3 — Good</option>
+        <option value="2">2 — Fair</option>
+        <option value="1">1 — Poor</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="5" required></textarea>
+    </div>
+
+    <div class="actions">
+      <button type="submit" id="submit-btn" class="btn-primary">Submit</button>
+    </div>
+
+    <div id="feedback-status" role="status" aria-live="polite"></div>
+  </form>
+
+  <section id="my-feedback" class="my-feedback" style="display:none">
+    <h3>My Feedback</h3>
+    <div id="my-feedback-list"></div>
+  </section>
+</section>
+
+<script src="{{ url_for('static', filename='js/feedback.js') }}"></script>
+{% endblock %}
